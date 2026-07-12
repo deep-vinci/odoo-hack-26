@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
 
 transporter.verify((err) => {
   if (err) {
-    logger.warn("Mail transporter verification failed — check SMTP credentials");
+    logger.warn("Mail transporter verification failed. Check SMTP credentials");
   } else {
     logger.info("Mail transporter is ready");
   }
