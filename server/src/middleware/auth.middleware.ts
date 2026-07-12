@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
 import { ApiError } from "../utils/ApiError";
-import { verifyToken } from "../utils/jwt";
+import { verifyAccessToken } from "../utils/jwt";
 import { rolesForRoute, type RouteKey } from "../constants/permissions";
 import type { UserRole } from "../constants/roles";
 
@@ -26,7 +26,7 @@ export const authenticate = (
   }
 
   try {
-    req.user = verifyToken(token);
+    req.user = verifyAccessToken(token);
     next();
   } catch {
     next(ApiError.unauthorized());

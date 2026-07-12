@@ -7,6 +7,7 @@ import {
   validateChangePassword,
   validateForgotPassword,
   validateLogin,
+  validateRefreshToken,
   validateRegister,
   validateResetPassword,
 } from "../validators/auth.validator";
@@ -14,6 +15,8 @@ import {
   changePassword as changePasswordService,
   getUserById,
   loginUser,
+  logoutUser,
+  refreshSession,
   registerUser,
   requestPasswordReset,
   resetPassword as resetPasswordService,
@@ -31,6 +34,12 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   sendSuccess(res, 200, result);
 });
 
+export const refresh = asyncHandler(async (req: Request, res: Response) => {
+  const input = validateRefreshToken(req.body);
+  const result = await refreshSession(input.refresh_token);
+  sendSuccess(res, 200, result);
+});
+
 export const getMe = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized();
@@ -39,9 +48,14 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
   sendSuccess(res, 200, { user });
 });
 
-export const logout = (_req: Request, res: Response): void => {
+export const logout = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken =
+    typeof req.body?.refresh_token === "string" ? req.body.refresh_token.trim() : "";
+  if (refreshToken) {
+    await logoutUser(refreshToken);
+  }
   sendSuccess(res, 200, { message: "Logged out successfully" });
-};
+});
 
 export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
   const input = validateForgotPassword(req.body);

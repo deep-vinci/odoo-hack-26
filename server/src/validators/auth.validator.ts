@@ -107,6 +107,24 @@ export const validateLogin = (body: unknown): LoginInput => {
   return { email, password };
 };
 
+export interface RefreshTokenInput {
+  refresh_token: string;
+}
+
+export const validateRefreshToken = (body: unknown): RefreshTokenInput => {
+  const data = (body ?? {}) as Record<string, unknown>;
+  const refreshToken =
+    typeof data.refresh_token === "string" ? data.refresh_token.trim() : "";
+
+  if (!refreshToken) {
+    throw ApiError.validation([
+      { field: "refresh_token", message: "Refresh token is required" },
+    ]);
+  }
+
+  return { refresh_token: refreshToken };
+};
+
 export interface ForgotPasswordInput {
   email: string;
 }
