@@ -76,7 +76,7 @@ export function MaintenanceFormModal({
 
     const vehicleOptions = (vehiclesQuery.data?.vehicles ?? []).map((vehicle) => ({
         value: vehicle.id,
-        label: `${vehicle.name} — ${vehicle.registration_number}`,
+        label: `${vehicle.name}, ${vehicle.registration_number}`,
     }));
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -169,7 +169,7 @@ export function MaintenanceFormModal({
                     {isEdit && record ? (
                         <Input
                             id="maintenance-vehicle"
-                            value={`${record.vehicle.name} — ${record.vehicle.registration_number}`}
+                            value={`${record.vehicle.name}, ${record.vehicle.registration_number}`}
                             disabled
                             readOnly
                         />

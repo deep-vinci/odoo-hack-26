@@ -98,8 +98,9 @@ export function MaintenanceCompleteModal({
                     <p className="text-sm text-gray-600">
                         <span className="font-medium text-[#1f2430]">
                             {record.vehicle.name}
-                        </span>{" "}
-                        — {record.title}
+                        </span>
+                        {": "}
+                        {record.title}
                     </p>
                 ) : null}
                 <div className="space-y-2">

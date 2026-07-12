@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { HorizontalScrollRow } from "@/components/ui/horizontal-scroll-row";
-import { KPICard } from "@/components/ui/kpi-card";
 import { MaintenanceCompleteModal } from "@/features/maintenance/components/maintenance-complete-modal";
 import { MaintenanceFormModal } from "@/features/maintenance/components/maintenance-form-modal";
 import { MaintenanceLogTable } from "@/features/maintenance/components/maintenance-log-table";
@@ -30,33 +28,12 @@ export function MaintenanceView() {
     });
 
     const data = query.data;
-    const summary = data?.summary;
     const emptyMessage = query.isError
         ? query.error.message
         : "No service records yet.";
 
     return (
         <>
-            <div className="px-8 pt-6">
-                <HorizontalScrollRow className="flex min-w-0 gap-4">
-                    <div className="w-56 shrink-0">
-                        <KPICard
-                            label="Open Records"
-                            value={summary?.open_count ?? 0}
-                            isLoading={query.isLoading}
-                        />
-                    </div>
-                    <div className="w-64 shrink-0">
-                        <KPICard
-                            label="Maintenance Cost (This Month)"
-                            value={summary?.total_cost_this_month ?? 0}
-                            prefix="₹"
-                            isLoading={query.isLoading}
-                        />
-                    </div>
-                </HorizontalScrollRow>
-            </div>
-
             <MaintenanceLogTable
                 records={data?.maintenance_records ?? []}
                 total={data?.pagination.total ?? 0}
