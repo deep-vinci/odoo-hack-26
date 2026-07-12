@@ -8,6 +8,7 @@ import {
   listVehicles,
   updateVehicle,
 } from "../controllers/vehicle.controller";
+import { getVehicleMaintenance } from "../controllers/maintenance.controller";
 import { authenticate, requirePermission } from "../middleware/auth.middleware";
 
 const router = Router();
@@ -15,6 +16,7 @@ const router = Router();
 router.post("/", authenticate, requirePermission("POST /vehicles"), createVehicle);
 router.get("/", authenticate, listVehicles);
 router.get("/:id", authenticate, getVehicle);
+router.get("/:id/maintenance", authenticate, getVehicleMaintenance);
 router.patch("/:id", authenticate, requirePermission("PATCH /vehicles/:id"), updateVehicle);
 router.patch(
   "/:id/status",
