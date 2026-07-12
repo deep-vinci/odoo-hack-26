@@ -5,7 +5,6 @@ import {
   ChartLine,
   GasPump,
   Gauge,
-  Gear,
   MapTrifold,
   SignOut,
   Users,
@@ -29,7 +28,6 @@ const navItems: DashboardNavItem[] = [
   { href: "/maintenance", label: "Maintenance", icon: Wrench },
   { href: "/fuel-expenses", label: "Fuel & Expenses", icon: GasPump },
   { href: "/analytics", label: "Analytics", icon: ChartLine },
-  { href: "/settings", label: "Settings", icon: Gear },
 ];
 
 type DashboardShellProps = {
