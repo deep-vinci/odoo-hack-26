@@ -1,94 +1,87 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ResourceListPage } from "@/components/data-table/resource-list-page";
 import type { DataTableColumn } from "@/components/data-table/data-table";
-import { Pill, type PillVariant } from "@/components/ui/pill";
+import { Pill } from "@/components/ui/pill";
+import {
+    tripStatusLabel,
+    tripStatusVariant,
+    type TripListItem,
+} from "@/features/trips/api";
+import { useTrips } from "@/features/trips/use-trips";
 
-type TripStatus = "on-trip" | "completed" | "dispatched" | "draft";
+const LIMIT = 10;
 
-type Trip = {
-    id: string;
-    vehicle: string;
-    driver: string;
-    status: TripStatus;
-    eta: string;
-};
-
-const statusLabel: Record<TripStatus, string> = {
-    "on-trip": "On Trip",
-    completed: "Completed",
-    dispatched: "Dispatched",
-    draft: "Draft",
-};
-
-const statusVariant: Record<TripStatus, PillVariant> = {
-    "on-trip": "info",
-    completed: "active",
-    dispatched: "brand-accent",
-    draft: "draft",
-};
-
-const trips: Trip[] = [
-    { id: "TR001", vehicle: "VAN-05", driver: "Alex", status: "on-trip", eta: "45 min" },
-    { id: "TR002", vehicle: "TRK-12", driver: "John", status: "completed", eta: "" },
-    { id: "TR003", vehicle: "MINI-08", driver: "Priya", status: "dispatched", eta: "1h 10m" },
-    { id: "TR006", vehicle: "", driver: "", status: "draft", eta: "Awaiting vehicle" },
-];
-
-const columns: DataTableColumn<Trip>[] = [
-    { key: "id", header: "Trip", render: (row) => <span className="font-medium">{row.id}</span> },
+const columns: DataTableColumn<TripListItem>[] = [
+    {
+        key: "trip_number",
+        header: "Trip",
+        render: (row) => <span className="font-medium">{row.trip_number}</span>,
+    },
     {
         key: "vehicle",
         header: "Vehicle",
-        render: (row) => row.vehicle || <span className="text-gray-400">None</span>,
+        render: (row) =>
+            row.vehicle?.registration_number || (
+                <span className="text-gray-400">None</span>
+            ),
     },
     {
         key: "driver",
         header: "Driver",
-        render: (row) => row.driver || <span className="text-gray-400">None</span>,
+        render: (row) =>
+            row.driver?.name || <span className="text-gray-400">None</span>,
     },
     {
         key: "status",
         header: "Status",
         render: (row) => (
-            <Pill variant={statusVariant[row.status]}>{statusLabel[row.status]}</Pill>
+            <Pill variant={tripStatusVariant[row.status]}>
+                {tripStatusLabel[row.status]}
+            </Pill>
         ),
     },
     {
-        key: "eta",
-        header: "ETA",
-        render: (row) => row.eta || <span className="text-gray-400">None</span>,
+        key: "planned_distance_km",
+        header: "Distance",
+        render: (row) =>
+            row.planned_distance_km ? (
+                `${row.planned_distance_km.toLocaleString("en-IN")} km`
+            ) : (
+                <span className="text-gray-400">None</span>
+            ),
     },
 ];
 
 export function RecentTripsTable() {
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
-    const limit = 10;
 
-    const filteredTrips = useMemo(() => {
-        const query = search.trim().toLowerCase();
-        if (!query) return trips;
-        return trips.filter((trip) =>
-            [trip.id, trip.vehicle, trip.driver, statusLabel[trip.status]]
-                .join(" ")
-                .toLowerCase()
-                .includes(query),
-        );
-    }, [search]);
+    const { data, isLoading, isError, error } = useTrips({
+        page,
+        limit: LIMIT,
+        search: search.trim() || undefined,
+        sort_by: "created_at",
+        sort_order: "desc",
+    });
+
+    const trips = data?.trips ?? [];
+    const total = data?.pagination.total ?? 0;
+    const emptyMessage = isError ? error.message : "No recent trips.";
 
     return (
         <ResourceListPage
             title="Recent Trips"
             columns={columns}
-            items={filteredTrips}
-            total={filteredTrips.length}
+            items={trips}
+            total={total}
             page={page}
-            limit={limit}
+            limit={LIMIT}
+            isLoading={isLoading}
             onPageChange={setPage}
             getRowKey={(row) => row.id}
-            emptyMessage="No recent trips."
+            emptyMessage={emptyMessage}
             searchPlaceholder="Search trips…"
             searchValue={search}
             onSearchChange={(value) => {

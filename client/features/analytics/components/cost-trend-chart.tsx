@@ -3,17 +3,41 @@
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
     ChartContainer,
+    ChartLegend,
+    ChartLegendContent,
     ChartTooltip,
     ChartTooltipContent,
     type ChartConfig,
 } from "@/components/ui/chart";
 import { design } from "@/lib/design";
 import { cn } from "@/lib/utils";
-import { monthlyRevenue } from "@/features/analytics/types";
+import type { CostTrend } from "@/features/analytics/api";
 
 const chartConfig = {
-    revenue: { label: "Revenue", color: "#2b7fd3" },
+    fuel_cost: { label: "Fuel", color: "#2b7fd3" },
+    maintenance_cost: { label: "Maintenance", color: "#e8871e" },
 } satisfies ChartConfig;
+
+const MONTH_LABELS = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+];
+
+function monthLabel(month: string) {
+    const parts = month.split("-");
+    const index = Number(parts[1]) - 1;
+    return MONTH_LABELS[index] ?? month;
+}
 
 function compactCurrency(value: number) {
     if (value >= 1000) {
@@ -22,15 +46,31 @@ function compactCurrency(value: number) {
     return `₹${value.toLocaleString("en-IN")}`;
 }
 
-export function MonthlyRevenueChart() {
+type CostTrendChartProps = {
+    series: CostTrend["series"];
+};
+
+export function CostTrendChart({ series }: CostTrendChartProps) {
+    const data = series.map((point) => ({
+        month: monthLabel(point.month),
+        fuel_cost: point.fuel_cost,
+        maintenance_cost: point.maintenance_cost,
+    }));
+
     return (
         <div className={cn(design.panel, "flex min-w-0 flex-col gap-4 p-6")}>
             <div>
-                <h2 className={design.sectionTitle}>Monthly Revenue</h2>
-                <p className={design.sectionSubtitle}>Revenue booked per month across the fleet.</p>
+                <h2 className={design.sectionTitle}>Monthly Cost Trend</h2>
+                <p className={design.sectionSubtitle}>
+                    Fuel and maintenance spend per month across the fleet.
+                </p>
             </div>
             <ChartContainer config={chartConfig} className="h-[260px] w-full">
-                <BarChart accessibilityLayer data={monthlyRevenue} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+                <BarChart
+                    accessibilityLayer
+                    data={data}
+                    margin={{ top: 8, right: 8, bottom: 0, left: 8 }}
+                >
                     <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#eef0f3" />
                     <XAxis
                         dataKey="month"
@@ -56,7 +96,19 @@ export function MonthlyRevenueChart() {
                             />
                         }
                     />
-                    <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[4, 4, 0, 0]} />
+                    <ChartLegend content={<ChartLegendContent />} />
+                    <Bar
+                        dataKey="fuel_cost"
+                        name="Fuel"
+                        fill="var(--color-fuel_cost)"
+                        radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                        dataKey="maintenance_cost"
+                        name="Maintenance"
+                        fill="var(--color-maintenance_cost)"
+                        radius={[4, 4, 0, 0]}
+                    />
                 </BarChart>
             </ChartContainer>
         </div>

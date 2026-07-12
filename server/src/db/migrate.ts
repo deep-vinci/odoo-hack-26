@@ -14,7 +14,7 @@ const migrate = async (): Promise<void> => {
     .sort();
 
   if (files.length === 0) {
-    logger.warn("No schema files found — nothing to migrate");
+    logger.warn("No schema files found. Nothing to migrate");
     return;
   }
 
@@ -27,7 +27,7 @@ const migrate = async (): Promise<void> => {
       await client.query(sql);
     }
     await client.query("COMMIT");
-    logger.info(`Migration complete — applied ${files.length} file(s)`);
+    logger.info(`Migration complete: applied ${files.length} file(s)`);
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;

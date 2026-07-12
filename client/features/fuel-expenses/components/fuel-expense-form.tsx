@@ -7,12 +7,16 @@ import { Combobox } from "@/components/ui/combobox";
 import { FilterDropdown } from "@/components/ui/filter-dropdown";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "@/components/ui/toast";
+import { EXPENSE_TYPES, type ExpenseType } from "@/features/fuel-expenses/api";
+import { expenseTypeLabel } from "@/features/fuel-expenses/types";
 import {
-    expenseTypeLabel,
-    type ExpenseType,
-    type FuelExpenseTrip,
-    type FuelExpenseVehicle,
-} from "@/features/fuel-expenses/types";
+    useAllVehicles,
+    useCreateExpense,
+    useCreateFuelLog,
+    useVehicleTrips,
+} from "@/features/fuel-expenses/use-fuel-expenses";
 
 type FormMode = "fuel" | "expense";
 
@@ -45,32 +49,39 @@ function emptyExpenseForm(): ExpenseFormState {
     return { vehicleId: "", tripId: "", type: "toll", amount: "", note: "", date: todayIso() };
 }
 
-const expenseTypeOptions = (Object.keys(expenseTypeLabel) as ExpenseType[]).map((type) => ({
+const expenseTypeOptions = EXPENSE_TYPES.map((type) => ({
     value: type,
     label: expenseTypeLabel[type],
 }));
 
 type FuelExpenseFormProps = {
-    vehicles: FuelExpenseVehicle[];
-    trips: FuelExpenseTrip[];
-    onLogFuel: (entry: { vehicleId: string; tripId: string | null; liters: number; cost: number; date: string }) => void;
-    onAddExpense: (entry: { vehicleId: string; tripId: string | null; type: ExpenseType; amount: number; note: string; date: string }) => void;
     onClose: () => void;
 };
 
-export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onClose }: FuelExpenseFormProps) {
+export function FuelExpenseForm({ onClose }: FuelExpenseFormProps) {
     const [mode, setMode] = useState<FormMode>("fuel");
     const [fuelForm, setFuelForm] = useState<FuelFormState>(emptyFuelForm);
     const [expenseForm, setExpenseForm] = useState<ExpenseFormState>(emptyExpenseForm);
 
-    const vehicleOptions = vehicles.map((v) => ({ value: v.id, label: v.name }));
+    const vehiclesQuery = useAllVehicles();
+    const createFuel = useCreateFuelLog();
+    const createExpenseMutation = useCreateExpense();
+    const loading = createFuel.isPending || createExpenseMutation.isPending;
 
     const activeVehicleId = mode === "fuel" ? fuelForm.vehicleId : expenseForm.vehicleId;
+    const tripsQuery = useVehicleTrips(activeVehicleId);
+
+    const vehicleOptions = (vehiclesQuery.data?.vehicles ?? []).map((vehicle) => ({
+        value: vehicle.id,
+        label: `${vehicle.name}, ${vehicle.registration_number}`,
+    }));
+
     const tripOptions = [
         { value: "", label: "No trip" },
-        ...trips
-            .filter((t) => !activeVehicleId || t.vehicleId === activeVehicleId)
-            .map((t) => ({ value: t.id, label: t.id })),
+        ...(tripsQuery.data?.trips ?? []).map((trip) => ({
+            value: trip.id,
+            label: trip.trip_number,
+        })),
     ];
 
     const fuelLiters = Number(fuelForm.liters) || 0;
@@ -83,39 +94,66 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
         expenseForm.vehicleId.length > 0 && expenseAmount > 0 && expenseForm.date.length > 0;
 
     function updateFuel<K extends keyof FuelFormState>(key: K, value: FuelFormState[K]) {
-        setFuelForm((prev) => ({ ...prev, [key]: value }));
+        setFuelForm((prev) =>
+            key === "vehicleId" ? { ...prev, vehicleId: value, tripId: "" } : { ...prev, [key]: value },
+        );
     }
 
     function updateExpense<K extends keyof ExpenseFormState>(key: K, value: ExpenseFormState[K]) {
-        setExpenseForm((prev) => ({ ...prev, [key]: value }));
+        setExpenseForm((prev) =>
+            key === "vehicleId" ? { ...prev, vehicleId: value, tripId: "" } : { ...prev, [key]: value },
+        );
     }
 
-    function handleLogFuel() {
+    async function handleLogFuel() {
         if (!canLogFuel) return;
-        onLogFuel({
-            vehicleId: fuelForm.vehicleId,
-            tripId: fuelForm.tripId || null,
-            liters: fuelLiters,
-            cost: fuelCost,
-            date: fuelForm.date,
-        });
-        setFuelForm(emptyFuelForm());
-        onClose();
+        try {
+            await createFuel.mutateAsync({
+                vehicle_id: fuelForm.vehicleId,
+                trip_id: fuelForm.tripId || null,
+                liters: fuelLiters,
+                cost: fuelCost,
+                filled_at: fuelForm.date || null,
+                odometer_km: null,
+            });
+            toast.success("Fuel log recorded.");
+            setFuelForm(emptyFuelForm());
+            onClose();
+        } catch (err) {
+            toast.error(
+                err instanceof Error ? err.message : "Unable to log fuel. Please try again.",
+            );
+        }
     }
 
-    function handleAddExpense() {
+    async function handleAddExpense() {
         if (!canAddExpense) return;
-        onAddExpense({
-            vehicleId: expenseForm.vehicleId,
-            tripId: expenseForm.tripId || null,
-            type: expenseForm.type,
-            amount: expenseAmount,
-            note: expenseForm.note.trim(),
-            date: expenseForm.date,
-        });
-        setExpenseForm(emptyExpenseForm());
-        onClose();
+        const note = expenseForm.note.trim();
+        try {
+            await createExpenseMutation.mutateAsync({
+                vehicle_id: expenseForm.vehicleId,
+                trip_id: expenseForm.tripId || null,
+                type: expenseForm.type,
+                amount: expenseAmount,
+                note: note ? note : null,
+                incurred_at: expenseForm.date || null,
+            });
+            toast.success("Expense recorded.");
+            setExpenseForm(emptyExpenseForm());
+            onClose();
+        } catch (err) {
+            toast.error(
+                err instanceof Error ? err.message : "Unable to add expense. Please try again.",
+            );
+        }
     }
+
+    const vehiclePlaceholder = vehiclesQuery.isLoading ? "Loading vehicles…" : "Select vehicle…";
+    const tripPlaceholder = tripsQuery.isLoading ? "Loading trips…" : "No trip";
+    const selectedFuelTripLabel =
+        tripOptions.find((o) => o.value === fuelForm.tripId)?.label ?? tripPlaceholder;
+    const selectedExpenseTripLabel =
+        tripOptions.find((o) => o.value === expenseForm.tripId)?.label ?? tripPlaceholder;
 
     return (
         <div className="flex min-w-0 flex-col gap-4">
@@ -152,8 +190,10 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
                             id="fuel-vehicle"
                             value={fuelForm.vehicleId}
                             onChange={(value) => updateFuel("vehicleId", value)}
-                            placeholder="Select vehicle…"
+                            placeholder={vehiclePlaceholder}
                             options={vehicleOptions}
+                            disabled={loading || vehiclesQuery.isLoading}
+                            noOptionsMessage="No vehicles found"
                         />
                     </div>
 
@@ -165,8 +205,10 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
                             value={fuelForm.tripId}
                             options={tripOptions}
                             onChange={(value) => updateFuel("tripId", value)}
-                            selectedLabel={tripOptions.find((o) => o.value === fuelForm.tripId)?.label ?? "No trip"}
+                            selectedLabel={selectedFuelTripLabel}
                             triggerClassName="w-full"
+                            disabled={loading || !fuelForm.vehicleId || tripsQuery.isLoading}
+                            searchable
                         />
                     </div>
 
@@ -177,9 +219,11 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
                                 id="fuel-liters"
                                 type="number"
                                 min={0}
+                                step="0.01"
                                 value={fuelForm.liters}
                                 onChange={(e) => updateFuel("liters", e.target.value)}
                                 placeholder="e.g. 42"
+                                disabled={loading}
                             />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -188,9 +232,11 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
                                 id="fuel-cost"
                                 type="number"
                                 min={0}
+                                step="0.01"
                                 value={fuelForm.cost}
                                 onChange={(e) => updateFuel("cost", e.target.value)}
                                 placeholder="e.g. 3150"
+                                disabled={loading}
                             />
                         </div>
                     </div>
@@ -202,6 +248,7 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
                             type="date"
                             value={fuelForm.date}
                             onChange={(e) => updateFuel("date", e.target.value)}
+                            disabled={loading}
                         />
                     </div>
                 </>
@@ -213,8 +260,10 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
                             id="expense-vehicle"
                             value={expenseForm.vehicleId}
                             onChange={(value) => updateExpense("vehicleId", value)}
-                            placeholder="Select vehicle…"
+                            placeholder={vehiclePlaceholder}
                             options={vehicleOptions}
+                            disabled={loading || vehiclesQuery.isLoading}
+                            noOptionsMessage="No vehicles found"
                         />
                     </div>
 
@@ -227,8 +276,10 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
                                 value={expenseForm.tripId}
                                 options={tripOptions}
                                 onChange={(value) => updateExpense("tripId", value)}
-                                selectedLabel={tripOptions.find((o) => o.value === expenseForm.tripId)?.label ?? "No trip"}
+                                selectedLabel={selectedExpenseTripLabel}
                                 triggerClassName="w-full"
+                                disabled={loading || !expenseForm.vehicleId || tripsQuery.isLoading}
+                                searchable
                             />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -241,6 +292,7 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
                                 onChange={(value) => updateExpense("type", value as ExpenseType)}
                                 selectedLabel={expenseTypeLabel[expenseForm.type]}
                                 triggerClassName="w-full"
+                                disabled={loading}
                             />
                         </div>
                     </div>
@@ -252,9 +304,11 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
                                 id="expense-amount"
                                 type="number"
                                 min={0}
+                                step="0.01"
                                 value={expenseForm.amount}
                                 onChange={(e) => updateExpense("amount", e.target.value)}
                                 placeholder="e.g. 340"
+                                disabled={loading}
                             />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -264,6 +318,7 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
                                 type="date"
                                 value={expenseForm.date}
                                 onChange={(e) => updateExpense("date", e.target.value)}
+                                disabled={loading}
                             />
                         </div>
                     </div>
@@ -275,6 +330,8 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
                             value={expenseForm.note}
                             onChange={(e) => updateExpense("note", e.target.value)}
                             placeholder="e.g. Expressway toll"
+                            maxLength={255}
+                            disabled={loading}
                         />
                     </div>
                 </>
@@ -285,16 +342,16 @@ export function FuelExpenseForm({ vehicles, trips, onLogFuel, onAddExpense, onCl
             </p>
 
             <div className="mt-1 flex items-center justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={onClose}>
+                <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
                     Cancel
                 </Button>
                 {mode === "fuel" ? (
-                    <Button type="button" variant="primary" disabled={!canLogFuel} onClick={handleLogFuel}>
-                        Log Fuel
+                    <Button type="button" variant="primary" disabled={!canLogFuel || loading} onClick={handleLogFuel}>
+                        {loading ? <Spinner spinnerClassName="border-white/40 border-t-white" /> : "Log Fuel"}
                     </Button>
                 ) : (
-                    <Button type="button" variant="primary" disabled={!canAddExpense} onClick={handleAddExpense}>
-                        Add Expense
+                    <Button type="button" variant="primary" disabled={!canAddExpense || loading} onClick={handleAddExpense}>
+                        {loading ? <Spinner spinnerClassName="border-white/40 border-t-white" /> : "Add Expense"}
                     </Button>
                 )}
             </div>

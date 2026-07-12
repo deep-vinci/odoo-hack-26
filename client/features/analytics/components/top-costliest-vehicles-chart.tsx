@@ -9,30 +9,43 @@ import {
 } from "@/components/ui/chart";
 import { design } from "@/lib/design";
 import { cn } from "@/lib/utils";
-import { costliestVehicles, type CostliestVehiclePoint } from "@/features/analytics/types";
+import type { OperationalCostRow } from "@/features/analytics/api";
 
-const tierColor: Record<CostliestVehiclePoint["tier"], string> = {
-    high: "#f26d6d",
-    medium: "#e8871e",
-    low: "#2b7fd3",
-};
+const TOP_N = 6;
+const barColors = ["#f26d6d", "#e8871e", "#e8871e", "#2b7fd3", "#2b7fd3", "#2b7fd3"];
 
 const chartConfig = {
     cost: { label: "Cost" },
 } satisfies ChartConfig;
 
-export function TopCostliestVehiclesChart() {
+type TopCostliestVehiclesChartProps = {
+    vehicles: OperationalCostRow[];
+};
+
+export function TopCostliestVehiclesChart({
+    vehicles,
+}: TopCostliestVehiclesChartProps) {
+    const data = [...vehicles]
+        .sort((a, b) => b.operational_cost - a.operational_cost)
+        .slice(0, TOP_N)
+        .map((row) => ({
+            vehicle: row.vehicle.registration_number,
+            cost: row.operational_cost,
+        }));
+
     return (
         <div className={cn(design.panel, "flex min-w-0 flex-col gap-4 p-6")}>
             <div>
                 <h2 className={design.sectionTitle}>Top Costliest Vehicles</h2>
-                <p className={design.sectionSubtitle}>Total maintenance and fuel spend per vehicle.</p>
+                <p className={design.sectionSubtitle}>
+                    Total maintenance and fuel spend per vehicle.
+                </p>
             </div>
             <ChartContainer config={chartConfig} className="h-[260px] w-full">
                 <BarChart
                     accessibilityLayer
                     layout="vertical"
-                    data={costliestVehicles}
+                    data={data}
                     margin={{ top: 4, right: 16, bottom: 4, left: 8 }}
                 >
                     <XAxis type="number" hide />
@@ -50,7 +63,9 @@ export function TopCostliestVehiclesChart() {
                                 hideLabel
                                 formatter={(value, _name, item) => (
                                     <div className="flex w-full items-center justify-between gap-4">
-                                        <span className="text-gray-500">{item.payload.vehicle}</span>
+                                        <span className="text-gray-500">
+                                            {item.payload.vehicle}
+                                        </span>
                                         <span className="font-mono font-medium text-gray-900 tabular-nums">
                                             ₹{Number(value).toLocaleString("en-IN")}
                                         </span>
@@ -60,8 +75,11 @@ export function TopCostliestVehiclesChart() {
                         }
                     />
                     <Bar dataKey="cost" radius={[0, 4, 4, 0]} barSize={18}>
-                        {costliestVehicles.map((entry) => (
-                            <Cell key={entry.vehicle} fill={tierColor[entry.tier]} />
+                        {data.map((entry, index) => (
+                            <Cell
+                                key={entry.vehicle}
+                                fill={barColors[index] ?? "#2b7fd3"}
+                            />
                         ))}
                     </Bar>
                 </BarChart>
