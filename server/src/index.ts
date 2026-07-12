@@ -5,7 +5,7 @@ import cors from "cors";
 import helmet from "helmet";
 
 import logger from "./config/logger";
-import pool from "./config/db";
+import pool, { checkDatabaseConnection } from "./config/db";
 import transporter from "./config/mailer";
 
 const app = express();
@@ -31,8 +31,14 @@ app.get("/health", async (_req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    logger.info(`Server running on http://localhost:${PORT}`);
-});
+const startServer = async () => {
+    await checkDatabaseConnection();
+
+    app.listen(PORT, () => {
+        logger.info(`Server running on http://localhost:${PORT}`);
+    });
+};
+
+startServer();
 
 export { app, pool, transporter };
