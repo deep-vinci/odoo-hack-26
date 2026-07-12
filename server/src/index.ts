@@ -7,6 +7,9 @@ import helmet from "helmet";
 import logger from "./config/logger";
 import pool, { checkDatabaseConnection } from "./config/db";
 import transporter from "./config/mailer";
+import apiRoutes from "./routes";
+import { errorHandler } from "./middleware/error.middleware";
+import { notFoundHandler } from "./middleware/notFound.middleware";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -30,6 +33,11 @@ app.get("/health", async (_req, res) => {
         res.status(500).json({ status: "error" });
     }
 });
+
+app.use("/api/v1", apiRoutes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const startServer = async () => {
     await checkDatabaseConnection();
