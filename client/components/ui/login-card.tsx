@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 type LoginCardProps = {
     title?: string;
     className?: string;
-    error?: string;
     onSubmit?: (values: {
         email: string;
         password: string;
@@ -19,12 +18,9 @@ type LoginCardProps = {
     onForgotPassword?: () => void;
 };
 
-const fieldClassName = "border-indigo-100";
-
 function LoginCard({
     title = "Get started with TransitOps",
     className,
-    error,
     onSubmit,
     onForgotPassword,
 }: LoginCardProps) {
@@ -54,8 +50,6 @@ function LoginCard({
             <h1 className="text-[22px] font-bold text-gray-900">{title}</h1>
 
             <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-                {error ? <div className={design.error}>{error}</div> : null}
-
                 <div className="space-y-2">
                     <Label htmlFor="email" required>
                         Email
@@ -66,7 +60,6 @@ function LoginCard({
                         type="email"
                         autoComplete="email"
                         placeholder="you@example.com"
-                        className={fieldClassName}
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
                         disabled={loading}
@@ -93,7 +86,6 @@ function LoginCard({
                         type="password"
                         autoComplete="current-password"
                         placeholder="Enter your password"
-                        className={fieldClassName}
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         disabled={loading}

@@ -5,16 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { toast } from "@/components/ui/toast";
 import { design } from "@/lib/design";
 import { cn } from "@/lib/utils";
 
-const fieldClassName = "bg-indigo-50 border-indigo-100";
 const RESEND_COOLDOWN_SECONDS = 60;
 
 type ForgotPasswordCardProps = {
     title?: string;
     className?: string;
-    error?: string;
     onSubmit?: (values: { email: string }) => void | Promise<void>;
     onBack?: () => void;
 };
@@ -22,7 +21,6 @@ type ForgotPasswordCardProps = {
 function ForgotPasswordCard({
     title = "Reset your password",
     className,
-    error,
     onSubmit,
     onBack,
 }: ForgotPasswordCardProps) {
@@ -46,6 +44,15 @@ function ForgotPasswordCard({
             await onSubmit?.({ email });
             setSent(true);
             setCooldown(RESEND_COOLDOWN_SECONDS);
+            toast.success(
+                `If an account exists for ${email}, we've sent a password reset link.`,
+            );
+        } catch (err) {
+            toast.error(
+                err instanceof Error
+                    ? err.message
+                    : "Unable to send reset link. Please try again.",
+            );
         } finally {
             setLoading(false);
         }
@@ -68,11 +75,11 @@ function ForgotPasswordCard({
 
             {sent ? (
                 <div className="mt-8 space-y-5">
-                    <div className={design.success}>
+                    <p className="text-sm text-gray-600">
                         If an account exists for{" "}
                         <span className="font-medium">{email}</span>, we&apos;ve
                         sent a password reset link. Check your inbox.
-                    </div>
+                    </p>
 
                     <button
                         type="button"
@@ -102,8 +109,6 @@ function ForgotPasswordCard({
                         your password.
                     </p>
 
-                    {error ? <div className={design.error}>{error}</div> : null}
-
                     <div className="space-y-2">
                         <Label htmlFor="email" required>
                             Email
@@ -114,7 +119,6 @@ function ForgotPasswordCard({
                             type="email"
                             autoComplete="email"
                             placeholder="you@example.com"
-                            className={fieldClassName}
                             value={email}
                             onChange={(event) => setEmail(event.target.value)}
                             disabled={loading}
