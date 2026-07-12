@@ -16,12 +16,6 @@ type ApiFetchOptions = Omit<RequestInit, "body"> & {
     body?: unknown;
 };
 
-/**
- * Thin fetch wrapper around the backend API.
- * - Prefixes {@link env.apiUrl}.
- * - Sends/receives JSON and includes credentials (cookies) by default.
- * - Throws {@link ApiError} on non-2xx responses.
- */
 export async function apiFetch<T>(
     path: string,
     { body, headers, ...init }: ApiFetchOptions = {},
