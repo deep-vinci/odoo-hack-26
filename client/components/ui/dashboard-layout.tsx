@@ -1,7 +1,12 @@
 "use client";
 
-import { CaretRight, List, MagnifyingGlass, X } from "@phosphor-icons/react";
-import { type ReactNode, useEffect, useState } from "react";
+import {
+    CaretRightIcon,
+    ListIcon,
+    MagnifyingGlassIcon,
+    XIcon,
+} from "@phosphor-icons/react";
+import { type ElementType, type ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export type DashboardNavChild = {
@@ -13,7 +18,7 @@ export type DashboardNavChild = {
 export type DashboardNavItem = {
     href: string;
     label: string;
-    icon: React.ElementType;
+    icon: ElementType;
     children?: DashboardNavChild[];
     disabled?: boolean;
 };
@@ -55,7 +60,7 @@ function NavLeaf({
     onHover,
 }: {
     label: string;
-    icon: React.ElementType;
+    icon: ElementType;
     active: boolean;
     collapsed: boolean;
     disabled?: boolean;
@@ -130,10 +135,12 @@ function NavGroup({
     const { href, label, icon: Icon, children, disabled } = item;
     const groupActive = pathIsActive(currentPath, href);
     const [open, setOpen] = useState(true);
+    const [prevGroupActive, setPrevGroupActive] = useState(groupActive);
 
-    useEffect(() => {
+    if (groupActive !== prevGroupActive) {
+        setPrevGroupActive(groupActive);
         if (groupActive) setOpen(true);
-    }, [groupActive]);
+    }
 
     if (collapsed) {
         return (
@@ -199,7 +206,7 @@ function NavGroup({
                     {label}
                 </span>
                 {children && children.length > 0 && (
-                    <CaretRight
+                    <CaretRightIcon
                         size={11}
                         weight="bold"
                         className={cn(
@@ -374,11 +381,29 @@ export function DashboardLayout({
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [search, setSearch] = useState("");
+    const mobileCloseRef = useRef<HTMLButtonElement>(null);
 
     const navigate = (href: string) => {
         onNavigate?.(href);
         setMobileOpen(false);
     };
+
+    useEffect(() => {
+        if (!mobileOpen) return;
+
+        mobileCloseRef.current?.focus();
+        document.body.style.overflow = "hidden";
+
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setMobileOpen(false);
+        };
+        document.addEventListener("keydown", onKeyDown);
+
+        return () => {
+            document.body.style.overflow = "";
+            document.removeEventListener("keydown", onKeyDown);
+        };
+    }, [mobileOpen]);
 
     return (
         <div className="flex h-full overflow-hidden bg-[#f5f5f5] text-[#202433]">
@@ -405,16 +430,23 @@ export function DashboardLayout({
                 <>
                     <div
                         className="fixed inset-0 z-40 bg-black/50"
+                        aria-hidden="true"
                         onClick={() => setMobileOpen(false)}
                     />
-                    <aside className="fixed inset-y-0 left-0 z-50 flex w-56 flex-col bg-[#1b181e] text-white shadow-[8px_0_30px_rgba(13,14,18,0.18)]">
+                    <aside
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Navigation"
+                        className="fixed inset-y-0 left-0 z-50 flex w-56 flex-col bg-[#1b181e] text-white shadow-[8px_0_30px_rgba(13,14,18,0.18)]"
+                    >
                         <button
+                            ref={mobileCloseRef}
                             type="button"
                             onClick={() => setMobileOpen(false)}
                             className="absolute right-3 top-4 flex h-7 w-7 items-center justify-center rounded-[4px] text-[#999] transition hover:bg-white/8 hover:text-white"
                             aria-label="Close navigation"
                         >
-                            <X size={15} />
+                            <XIcon size={15} />
                         </button>
                         <SidebarContent
                             navItems={navItems}
@@ -442,7 +474,7 @@ export function DashboardLayout({
                         )}
                         aria-label="Open navigation"
                     >
-                        <List size={19} />
+                        <ListIcon size={19} />
                     </button>
 
                     {!forceDrawer && (
@@ -456,7 +488,7 @@ export function DashboardLayout({
                                     : "Collapse sidebar"
                             }
                         >
-                            <List size={19} />
+                            <ListIcon size={19} />
                         </button>
                     )}
 
@@ -472,13 +504,14 @@ export function DashboardLayout({
                             )}
                         >
                             <div className="relative w-full">
-                                <MagnifyingGlass
+                                <MagnifyingGlassIcon
                                     size={14}
                                     className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]"
                                 />
                                 <input
                                     type="search"
                                     placeholder={searchPlaceholder}
+                                    aria-label={searchPlaceholder}
                                     value={search}
                                     onChange={(e) => {
                                         setSearch(e.target.value);
