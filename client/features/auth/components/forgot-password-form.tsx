@@ -6,11 +6,10 @@ import { useRequestPasswordReset } from "@/features/auth/use-auth";
 
 export function ForgotPasswordForm() {
     const router = useRouter();
-    const { mutateAsync, error } = useRequestPasswordReset();
+    const { mutateAsync } = useRequestPasswordReset();
 
     return (
         <ForgotPasswordCard
-            error={error?.message}
             onSubmit={async (values) => {
                 await mutateAsync(values);
             }}

@@ -32,7 +32,7 @@ export function DashboardFilters() {
     const [region, setRegion] = useState("");
 
     return (
-        <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-3">
             <FilterDropdown
                 label="Vehicle Type: All"
                 value={vehicleType}
