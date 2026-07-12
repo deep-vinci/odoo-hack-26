@@ -1,123 +1,274 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import {
+    DotsThreeVerticalIcon,
+    PencilSimpleIcon,
+    ProhibitIcon,
+    ArrowCounterClockwiseIcon,
+    TrashIcon,
+} from "@phosphor-icons/react";
 import type { DataTableColumn } from "@/components/data-table/data-table";
 import { ResourceListPage } from "@/components/data-table/resource-list-page";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { FilterDropdown } from "@/components/ui/filter-dropdown";
 import { Pill, type PillVariant } from "@/components/ui/pill";
+import { toast } from "@/components/ui/toast";
+import {
+    VEHICLE_STATUSES,
+    VEHICLE_TYPES,
+    type Vehicle,
+    type VehicleStatus,
+    type VehicleType,
+} from "@/features/fleet/api";
+import {
+    useChangeVehicleStatus,
+    useDeleteVehicle,
+    useVehicles,
+} from "@/features/fleet/use-vehicles";
+import { VehicleFormModal } from "@/features/fleet/components/vehicle-form-modal";
+import { getStoredUserRole } from "@/lib/auth-storage";
 
-type VehicleType = "van" | "truck" | "mini";
-type VehicleStatus = "available" | "on-trip" | "in-shop" | "retired";
-
-type Vehicle = {
-    id: string;
-    regNo: string;
-    name: string;
-    type: VehicleType;
-    capacity: string;
-    odometer: number;
-    acqCost: number;
-    status: VehicleStatus;
-};
-
-const typeLabel: Record<VehicleType, string> = {
-    van: "Van",
+const TYPE_LABELS: Record<VehicleType, string> = {
     truck: "Truck",
-    mini: "Mini",
+    van: "Van",
+    mini_truck: "Mini Truck",
+    trailer: "Trailer",
+    other: "Other",
 };
 
-const statusLabel: Record<VehicleStatus, string> = {
+const STATUS_LABELS: Record<VehicleStatus, string> = {
     available: "Available",
-    "on-trip": "On Trip",
-    "in-shop": "In Shop",
+    on_trip: "On Trip",
+    in_shop: "In Shop",
     retired: "Retired",
 };
 
-const statusVariant: Record<VehicleStatus, PillVariant> = {
+const STATUS_VARIANTS: Record<VehicleStatus, PillVariant> = {
     available: "available",
-    "on-trip": "info",
-    "in-shop": "pending",
+    on_trip: "info",
+    in_shop: "pending",
     retired: "danger",
 };
 
-const vehicles: Vehicle[] = [
-    { id: "1", regNo: "GJ01AB4521", name: "VAN-05", type: "van", capacity: "500 kg", odometer: 74_000, acqCost: 620_000, status: "available" },
-    { id: "2", regNo: "GJ01AB9981", name: "TRUCK-11", type: "truck", capacity: "5 Ton", odometer: 182_000, acqCost: 2_450_000, status: "on-trip" },
-    { id: "3", regNo: "GJ01AB1120", name: "MINI-03", type: "mini", capacity: "1 Ton", odometer: 66_000, acqCost: 410_000, status: "in-shop" },
-    { id: "4", regNo: "GJ01AB0081", name: "VAN-09", type: "van", capacity: "750 kg", odometer: 241_900, acqCost: 590_000, status: "retired" },
-];
-
 const typeFilterOptions = [
     { value: "", label: "All" },
-    { value: "van", label: "Van" },
-    { value: "truck", label: "Truck" },
-    { value: "mini", label: "Mini" },
+    ...VEHICLE_TYPES.map((type) => ({ value: type, label: TYPE_LABELS[type] })),
 ];
 
 const statusFilterOptions = [
     { value: "", label: "All" },
-    { value: "available", label: "Available" },
-    { value: "on-trip", label: "On Trip" },
-    { value: "in-shop", label: "In Shop" },
-    { value: "retired", label: "Retired" },
+    ...VEHICLE_STATUSES.map((status) => ({
+        value: status,
+        label: STATUS_LABELS[status],
+    })),
 ];
 
-const columns: DataTableColumn<Vehicle>[] = [
-    {
-        key: "regNo",
-        header: "Reg. No. (Unique)",
-        render: (row) => <span className="font-medium">{row.regNo}</span>,
-    },
-    { key: "name", header: "Name/Model", render: (row) => row.name },
-    { key: "type", header: "Type", render: (row) => typeLabel[row.type] },
-    { key: "capacity", header: "Capacity", render: (row) => row.capacity },
-    {
-        key: "odometer",
-        header: "Odometer",
-        render: (row) => row.odometer.toLocaleString("en-IN"),
-    },
-    {
-        key: "acqCost",
-        header: "Acq. Cost",
-        render: (row) => row.acqCost.toLocaleString("en-IN"),
-    },
-    {
-        key: "status",
-        header: "Status",
-        render: (row) => <Pill variant={statusVariant[row.status]}>{statusLabel[row.status]}</Pill>,
-    },
-];
+const numberFormat = new Intl.NumberFormat("en-IN");
+
+function subscribeRole(callback: () => void) {
+    window.addEventListener("storage", callback);
+    return () => window.removeEventListener("storage", callback);
+}
+
+const LIMIT = 10;
 
 export function VehiclesTable() {
+    const role = useSyncExternalStore(
+        subscribeRole,
+        getStoredUserRole,
+        () => null,
+    );
+    const isManager = role === "fleet_manager";
+
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
-    const [typeFilter, setTypeFilter] = useState("");
-    const [statusFilter, setStatusFilter] = useState("");
-    const limit = 10;
+    const [typeFilter, setTypeFilter] = useState<string>("");
+    const [statusFilter, setStatusFilter] = useState<string>("");
 
-    const filteredVehicles = useMemo(() => {
-        const query = search.trim().toLowerCase();
-        return vehicles.filter((vehicle) => {
-            const matchesQuery = !query || vehicle.regNo.toLowerCase().includes(query);
-            const matchesType = !typeFilter || vehicle.type === typeFilter;
-            const matchesStatus = !statusFilter || vehicle.status === statusFilter;
-            return matchesQuery && matchesType && matchesStatus;
+    const [formOpen, setFormOpen] = useState(false);
+    const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
+
+    const { data, isLoading } = useVehicles({
+        page,
+        limit: LIMIT,
+        search: search.trim() || undefined,
+        type: (typeFilter as VehicleType) || undefined,
+        status: (statusFilter as VehicleStatus) || undefined,
+    });
+
+    const changeStatus = useChangeVehicleStatus();
+    const deleteVehicle = useDeleteVehicle();
+
+    const vehicles = data?.vehicles ?? [];
+    const total = data?.pagination.total ?? 0;
+
+    function openCreate() {
+        setEditingVehicle(null);
+        setFormOpen(true);
+    }
+
+    function openEdit(vehicle: Vehicle) {
+        setEditingVehicle(vehicle);
+        setFormOpen(true);
+    }
+
+    async function handleStatus(vehicle: Vehicle, status: VehicleStatus) {
+        try {
+            await changeStatus.mutateAsync({ id: vehicle.id, status });
+            toast.success(
+                status === "retired"
+                    ? `${vehicle.name} retired.`
+                    : `${vehicle.name} set to available.`,
+            );
+        } catch (err) {
+            toast.error(
+                err instanceof Error
+                    ? err.message
+                    : "Unable to change status. Please try again.",
+            );
+        }
+    }
+
+    async function handleDelete() {
+        if (!deleteTarget) return;
+        try {
+            await deleteVehicle.mutateAsync(deleteTarget.id);
+            toast.success(`${deleteTarget.name} deleted.`);
+            setDeleteTarget(null);
+        } catch (err) {
+            toast.error(
+                err instanceof Error
+                    ? err.message
+                    : "Unable to delete vehicle. Please try again.",
+            );
+        }
+    }
+
+    const buildColumns = (): DataTableColumn<Vehicle>[] => {
+        const base: DataTableColumn<Vehicle>[] = [
+            {
+                key: "registration_number",
+                header: "Reg. No. (Unique)",
+                render: (row) => (
+                    <span className="font-medium">
+                        {row.registration_number}
+                    </span>
+                ),
+            },
+            { key: "name", header: "Name/Model", render: (row) => row.name },
+            {
+                key: "type",
+                header: "Type",
+                render: (row) => TYPE_LABELS[row.type],
+            },
+            {
+                key: "max_load_capacity_kg",
+                header: "Capacity",
+                render: (row) =>
+                    `${numberFormat.format(row.max_load_capacity_kg)} kg`,
+            },
+            {
+                key: "odometer_km",
+                header: "Odometer",
+                render: (row) => numberFormat.format(row.odometer_km),
+            },
+            {
+                key: "acquisition_cost",
+                header: "Acq. Cost",
+                render: (row) => numberFormat.format(row.acquisition_cost),
+            },
+            {
+                key: "region",
+                header: "Region",
+                render: (row) => row.region ?? "—",
+            },
+            {
+                key: "status",
+                header: "Status",
+                render: (row) => (
+                    <Pill variant={STATUS_VARIANTS[row.status]}>
+                        {STATUS_LABELS[row.status]}
+                    </Pill>
+                ),
+            },
+        ];
+
+        if (!isManager) return base;
+
+        base.push({
+            key: "actions",
+            header: "",
+            className: "w-12 text-right",
+            render: (row) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger
+                        aria-label={`Actions for ${row.registration_number}`}
+                        className="inline-flex size-8 cursor-pointer items-center justify-center rounded-[4px] text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2b7fd3]/20"
+                    >
+                        <DotsThreeVerticalIcon size={18} weight="bold" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-40">
+                        <DropdownMenuItem onClick={() => openEdit(row)}>
+                            <PencilSimpleIcon size={16} />
+                            Edit
+                        </DropdownMenuItem>
+                        {row.status === "available" ? (
+                            <DropdownMenuItem
+                                onClick={() => handleStatus(row, "retired")}
+                            >
+                                <ProhibitIcon size={16} />
+                                Retire
+                            </DropdownMenuItem>
+                        ) : null}
+                        {row.status === "retired" ? (
+                            <DropdownMenuItem
+                                onClick={() => handleStatus(row, "available")}
+                            >
+                                <ArrowCounterClockwiseIcon size={16} />
+                                Set available
+                            </DropdownMenuItem>
+                        ) : null}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => setDeleteTarget(row)}
+                        >
+                            <TrashIcon size={16} />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
         });
-    }, [search, typeFilter, statusFilter]);
+
+        return base;
+    };
+
+    const columns = buildColumns();
 
     return (
         <>
             <ResourceListPage
                 title="Vehicle Registry"
                 columns={columns}
-                items={filteredVehicles}
-                total={filteredVehicles.length}
+                items={vehicles}
+                total={total}
                 page={page}
-                limit={limit}
+                limit={LIMIT}
                 onPageChange={setPage}
                 getRowKey={(row) => row.id}
+                isLoading={isLoading}
                 emptyMessage="No vehicles found."
-                searchPlaceholder="Search reg. no…"
+                searchPlaceholder="Search reg. no or name…"
                 searchValue={search}
                 onSearchChange={(value) => {
                     setSearch(value);
@@ -133,7 +284,11 @@ export function VehiclesTable() {
                                 setTypeFilter(value);
                                 setPage(1);
                             }}
-                            selectedLabel={`Type: ${typeFilterOptions.find((o) => o.value === typeFilter)?.label ?? "All"}`}
+                            selectedLabel={`Type: ${
+                                typeFilterOptions.find(
+                                    (o) => o.value === typeFilter,
+                                )?.label ?? "All"
+                            }`}
                             triggerClassName="w-[160px]"
                         />
                         <FilterDropdown
@@ -144,17 +299,52 @@ export function VehiclesTable() {
                                 setStatusFilter(value);
                                 setPage(1);
                             }}
-                            selectedLabel={`Status: ${statusFilterOptions.find((o) => o.value === statusFilter)?.label ?? "All"}`}
-                            triggerClassName="w-[160px]"
+                            selectedLabel={`Status: ${
+                                statusFilterOptions.find(
+                                    (o) => o.value === statusFilter,
+                                )?.label ?? "All"
+                            }`}
+                            triggerClassName="w-[170px]"
                         />
                     </>
                 }
-                primaryAction={{ label: "Add Vehicle", onClick: () => {} }}
+                primaryAction={
+                    isManager
+                        ? { label: "Add Vehicle", onClick: openCreate }
+                        : undefined
+                }
                 hideHeader
             />
             <p className="px-8 pb-6 text-xs text-gray-500">
-                Rule: Registration No. must be unique • Retired/In Shop vehicles are hidden from Trip Dispatcher
+                Rule: Registration No. must be unique • Retired/In Shop vehicles
+                are hidden from Trip Dispatcher
             </p>
+
+            {isManager ? (
+                <>
+                    <VehicleFormModal
+                        open={formOpen}
+                        onOpenChange={setFormOpen}
+                        vehicle={editingVehicle}
+                    />
+                    <ConfirmDialog
+                        open={deleteTarget !== null}
+                        title="Delete vehicle"
+                        description={
+                            deleteTarget
+                                ? `Delete ${deleteTarget.name} (${deleteTarget.registration_number})? This cannot be undone. Vehicles with trips or logs cannot be deleted — retire them instead.`
+                                : ""
+                        }
+                        confirmLabel="Delete"
+                        danger
+                        loading={deleteVehicle.isPending}
+                        onOpenChange={(open) => {
+                            if (!open) setDeleteTarget(null);
+                        }}
+                        onConfirm={handleDelete}
+                    />
+                </>
+            ) : null}
         </>
     );
 }

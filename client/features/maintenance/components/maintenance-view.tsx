@@ -1,90 +1,102 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Modal } from "@/components/ui/modal";
-import {
-    MaintenanceRecordForm,
-    type MaintenanceFormValues,
-} from "@/features/maintenance/components/maintenance-record-form";
+import { useState } from "react";
+import { HorizontalScrollRow } from "@/components/ui/horizontal-scroll-row";
+import { KPICard } from "@/components/ui/kpi-card";
+import { MaintenanceCompleteModal } from "@/features/maintenance/components/maintenance-complete-modal";
+import { MaintenanceFormModal } from "@/features/maintenance/components/maintenance-form-modal";
 import { MaintenanceLogTable } from "@/features/maintenance/components/maintenance-log-table";
-import {
-    initialMaintenanceRecords,
-    initialMaintenanceVehicles,
-    type MaintenanceRecord,
-} from "@/features/maintenance/types";
+import type { MaintenanceRecord, MaintenanceStatus } from "@/features/maintenance/api";
+import { useMaintenanceList } from "@/features/maintenance/use-maintenance";
+
+const LIMIT = 10;
 
 export function MaintenanceView() {
-    const [records, setRecords] = useState<MaintenanceRecord[]>(initialMaintenanceRecords);
-    const recordSequenceRef = useRef(initialMaintenanceRecords.length + 1);
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<MaintenanceStatus | "">("");
+
     const [addOpen, setAddOpen] = useState(false);
     const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
+    const [completingRecord, setCompletingRecord] = useState<MaintenanceRecord | null>(null);
 
-    function latestStatus(vehicleId: string, excludeId?: string) {
-        for (const record of records) {
-            if (record.id === excludeId) continue;
-            if (record.vehicleId === vehicleId) return record.status;
-        }
-        return undefined;
-    }
+    const query = useMaintenanceList({
+        page,
+        limit: LIMIT,
+        search,
+        status: statusFilter,
+        sort_by: "opened_at",
+        sort_order: "desc",
+    });
 
-    function vehicleInShop(vehicleId: string, excludeId?: string) {
-        return latestStatus(vehicleId, excludeId) === "in-shop";
-    }
-
-    function handleAddRecord(values: MaintenanceFormValues) {
-        const id = `m${recordSequenceRef.current}`;
-        recordSequenceRef.current += 1;
-        setRecords((prev) => [{ id, ...values }, ...prev]);
-        setAddOpen(false);
-    }
-
-    function handleUpdateRecord(id: string, values: MaintenanceFormValues) {
-        setRecords((prev) => prev.map((record) => (record.id === id ? { ...record, ...values } : record)));
-        setEditingRecord(null);
-    }
+    const data = query.data;
+    const summary = data?.summary;
+    const emptyMessage = query.isError
+        ? query.error.message
+        : "No service records yet.";
 
     return (
         <>
+            <div className="px-8 pt-6">
+                <HorizontalScrollRow className="flex min-w-0 gap-4">
+                    <div className="w-56 shrink-0">
+                        <KPICard
+                            label="Open Records"
+                            value={summary?.open_count ?? 0}
+                            isLoading={query.isLoading}
+                        />
+                    </div>
+                    <div className="w-64 shrink-0">
+                        <KPICard
+                            label="Maintenance Cost (This Month)"
+                            value={summary?.total_cost_this_month ?? 0}
+                            prefix="₹"
+                            isLoading={query.isLoading}
+                        />
+                    </div>
+                </HorizontalScrollRow>
+            </div>
+
             <MaintenanceLogTable
-                records={records}
-                vehicles={initialMaintenanceVehicles}
+                records={data?.maintenance_records ?? []}
+                total={data?.pagination.total ?? 0}
+                page={page}
+                limit={LIMIT}
+                isLoading={query.isLoading}
+                emptyMessage={emptyMessage}
+                search={search}
+                statusFilter={statusFilter}
+                onPageChange={setPage}
+                onSearchChange={(value) => {
+                    setSearch(value);
+                    setPage(1);
+                }}
+                onStatusFilterChange={(value) => {
+                    setStatusFilter(value);
+                    setPage(1);
+                }}
                 onAddRecord={() => setAddOpen(true)}
                 onEditRecord={setEditingRecord}
+                onCompleteRecord={setCompletingRecord}
             />
 
-            <Modal
-                open={addOpen}
-                onOpenChange={setAddOpen}
-                title="Log Service Record"
-                description="Record vehicle maintenance and update its shop status."
-            >
-                <MaintenanceRecordForm
-                    vehicles={initialMaintenanceVehicles}
-                    vehicleInShop={(vehicleId) => vehicleInShop(vehicleId)}
-                    onSubmit={handleAddRecord}
-                    onCancel={() => setAddOpen(false)}
-                />
-            </Modal>
+            <MaintenanceFormModal open={addOpen} onOpenChange={setAddOpen} />
 
-            <Modal
+            <MaintenanceFormModal
                 open={editingRecord !== null}
                 onOpenChange={(open) => {
                     if (!open) setEditingRecord(null);
                 }}
-                title="Edit Service Record"
-                description="Update the details of this maintenance record."
-            >
-                {editingRecord ? (
-                    <MaintenanceRecordForm
-                        record={editingRecord}
-                        vehicles={initialMaintenanceVehicles}
-                        vehicleInShop={(vehicleId) => vehicleInShop(vehicleId, editingRecord.id)}
-                        submitLabel="Save Changes"
-                        onSubmit={(values) => handleUpdateRecord(editingRecord.id, values)}
-                        onCancel={() => setEditingRecord(null)}
-                    />
-                ) : null}
-            </Modal>
+                record={editingRecord}
+            />
+
+            <MaintenanceCompleteModal
+                open={completingRecord !== null}
+                onOpenChange={(open) => {
+                    if (!open) setCompletingRecord(null);
+                }}
+                record={completingRecord}
+            />
         </>
     );
 }

@@ -17,9 +17,7 @@ import {
     type ExpenseType,
     type FuelLog,
 } from "@/features/fuel-expenses/types";
-import { initialMaintenanceRecords } from "@/features/maintenance/types";
-
-const maintenanceCost = initialMaintenanceRecords.reduce((sum, record) => sum + record.cost, 0);
+const maintenanceCost = 26700;
 
 export function FuelExpenseView() {
     const [fuelLogs, setFuelLogs] = useState<FuelLog[]>(initialFuelLogs);

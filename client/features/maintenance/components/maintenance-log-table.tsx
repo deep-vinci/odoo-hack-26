@@ -1,130 +1,142 @@
 "use client";
 
-import { PencilSimpleIcon } from "@phosphor-icons/react";
-import { useMemo, useState } from "react";
+import { CheckCircleIcon, PencilSimpleIcon } from "@phosphor-icons/react";
+import { useMemo } from "react";
 import type { DataTableColumn } from "@/components/data-table/data-table";
 import { ResourceListPage } from "@/components/data-table/resource-list-page";
 import { DropdownPanel } from "@/components/ui/dropdown-panel";
 import { FilterDropdown } from "@/components/ui/filter-dropdown";
 import { Pill } from "@/components/ui/pill";
+import type { MaintenanceRecord, MaintenanceStatus } from "@/features/maintenance/api";
 import {
+    formatCost,
+    formatMaintenanceDate,
     maintenanceStatusLabel,
     maintenanceStatusVariant,
-    type MaintenanceRecord,
-    type MaintenanceVehicle,
 } from "@/features/maintenance/types";
 
 const statusFilterOptions = [
     { value: "", label: "All" },
-    { value: "in-shop", label: "In Shop" },
-    { value: "completed", label: "Completed" },
+    { value: "open", label: "In Shop" },
+    { value: "closed", label: "Completed" },
 ];
-
-function formatDate(iso: string) {
-    return new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-    });
-}
 
 type MaintenanceLogTableProps = {
     records: MaintenanceRecord[];
-    vehicles: MaintenanceVehicle[];
+    total: number;
+    page: number;
+    limit: number;
+    isLoading: boolean;
+    emptyMessage: string;
+    search: string;
+    statusFilter: MaintenanceStatus | "";
+    onPageChange: (page: number) => void;
+    onSearchChange: (value: string) => void;
+    onStatusFilterChange: (value: MaintenanceStatus | "") => void;
     onAddRecord: () => void;
     onEditRecord: (record: MaintenanceRecord) => void;
+    onCompleteRecord: (record: MaintenanceRecord) => void;
 };
 
 export function MaintenanceLogTable({
     records,
-    vehicles,
+    total,
+    page,
+    limit,
+    isLoading,
+    emptyMessage,
+    search,
+    statusFilter,
+    onPageChange,
+    onSearchChange,
+    onStatusFilterChange,
     onAddRecord,
     onEditRecord,
+    onCompleteRecord,
 }: MaintenanceLogTableProps) {
-    const [page, setPage] = useState(1);
-    const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("");
-    const limit = 10;
-
-    const vehicleNameById = useMemo(() => new Map(vehicles.map((v) => [v.id, v.name])), [vehicles]);
-
     const columns: DataTableColumn<MaintenanceRecord>[] = useMemo(
         () => [
             {
                 key: "vehicle",
                 header: "Vehicle",
-                render: (row) => <span className="font-medium">{vehicleNameById.get(row.vehicleId) ?? "—"}</span>,
+                render: (row) => (
+                    <div className="flex flex-col">
+                        <span className="font-medium">{row.vehicle.name}</span>
+                        <span className="text-xs text-gray-500">
+                            {row.vehicle.registration_number}
+                        </span>
+                    </div>
+                ),
             },
-            { key: "serviceType", header: "Service", render: (row) => row.serviceType },
-            { key: "cost", header: "Cost", render: (row) => row.cost.toLocaleString("en-IN") },
-            { key: "date", header: "Date", render: (row) => formatDate(row.date) },
+            { key: "title", header: "Service", render: (row) => row.title },
+            { key: "cost", header: "Cost", render: (row) => formatCost(row.cost) },
+            {
+                key: "opened_at",
+                header: "Opened",
+                render: (row) => formatMaintenanceDate(row.opened_at),
+            },
             {
                 key: "status",
                 header: "Status",
                 render: (row) => (
-                    <Pill variant={maintenanceStatusVariant[row.status]}>{maintenanceStatusLabel[row.status]}</Pill>
+                    <Pill variant={maintenanceStatusVariant[row.status]}>
+                        {maintenanceStatusLabel[row.status]}
+                    </Pill>
                 ),
             },
             {
                 key: "actions",
                 header: "",
                 className: "w-16 text-right",
-                render: (row) => (
-                    <div className="flex justify-end">
-                        <DropdownPanel
-                            triggerLabel={`Edit ${vehicleNameById.get(row.vehicleId) ?? "record"}`}
-                            actions={[
-                                {
-                                    label: "Edit",
-                                    icon: <PencilSimpleIcon size={16} />,
-                                    onSelect: () => onEditRecord(row),
-                                },
-                            ]}
-                        />
-                    </div>
-                ),
+                render: (row) =>
+                    row.status === "open" ? (
+                        <div className="flex justify-end">
+                            <DropdownPanel
+                                triggerLabel={`Actions for ${row.vehicle.name}`}
+                                actions={[
+                                    {
+                                        label: "Edit",
+                                        icon: <PencilSimpleIcon size={16} />,
+                                        onSelect: () => onEditRecord(row),
+                                    },
+                                    {
+                                        label: "Mark Completed",
+                                        icon: <CheckCircleIcon size={16} />,
+                                        onSelect: () => onCompleteRecord(row),
+                                    },
+                                ]}
+                            />
+                        </div>
+                    ) : null,
             },
         ],
-        [vehicleNameById, onEditRecord],
+        [onEditRecord, onCompleteRecord],
     );
-
-    const filteredRecords = useMemo(() => {
-        const query = search.trim().toLowerCase();
-        return records.filter((record) => {
-            const vehicleName = vehicleNameById.get(record.vehicleId) ?? "";
-            const matchesQuery = !query || `${vehicleName} ${record.serviceType}`.toLowerCase().includes(query);
-            const matchesStatus = !statusFilter || record.status === statusFilter;
-            return matchesQuery && matchesStatus;
-        });
-    }, [records, search, statusFilter, vehicleNameById]);
 
     return (
         <>
             <ResourceListPage
                 title="Service Log"
                 columns={columns}
-                items={filteredRecords}
-                total={filteredRecords.length}
+                items={records}
+                total={total}
                 page={page}
                 limit={limit}
-                onPageChange={setPage}
+                onPageChange={onPageChange}
+                isLoading={isLoading}
                 getRowKey={(row) => row.id}
-                emptyMessage="No service records yet."
-                searchPlaceholder="Search vehicle, service…"
+                emptyMessage={emptyMessage}
+                searchPlaceholder="Search service…"
                 searchValue={search}
-                onSearchChange={(value) => {
-                    setSearch(value);
-                    setPage(1);
-                }}
+                onSearchChange={onSearchChange}
                 filters={
                     <FilterDropdown
                         label="Status: All"
                         value={statusFilter}
                         options={statusFilterOptions}
-                        onChange={(value) => {
-                            setStatusFilter(value);
-                            setPage(1);
-                        }}
+                        onChange={(value) =>
+                            onStatusFilterChange(value as MaintenanceStatus | "")
+                        }
                         selectedLabel={`Status: ${statusFilterOptions.find((o) => o.value === statusFilter)?.label ?? "All"}`}
                         triggerClassName="w-[160px]"
                     />

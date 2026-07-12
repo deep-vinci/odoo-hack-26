@@ -30,6 +30,10 @@ export function getStoredUser(): StoredAuthUser | null {
     }
 }
 
+export function getStoredUserRole(): string | null {
+    return getStoredUser()?.role ?? null;
+}
+
 export function setStoredSession(
     token: string,
     refreshToken: string,
