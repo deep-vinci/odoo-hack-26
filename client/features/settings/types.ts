@@ -1,28 +1,3 @@
-export type SettingsTab = "general" | "rbac";
-
-export type GeneralSettings = {
-    depotName: string;
-    currency: string;
-    distanceUnit: string;
-};
-
-export const currencyOptions = [
-    { value: "INR", label: "INR (₹)" },
-    { value: "USD", label: "USD ($)" },
-    { value: "EUR", label: "EUR (€)" },
-] as const;
-
-export const distanceUnitOptions = [
-    { value: "km", label: "Kilometers" },
-    { value: "mi", label: "Miles" },
-] as const;
-
-export const initialGeneralSettings: GeneralSettings = {
-    depotName: "Gandhinagar Depot GJ4",
-    currency: "INR",
-    distanceUnit: "km",
-};
-
 export type AccessLevel = "manage" | "view" | "none";
 
 export type RbacModule = {
