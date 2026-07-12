@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { tripStatusLabel, type TripStatus } from "@/features/trips/types";
+import { tripStatusLabel, type TripStatus } from "@/features/trips/api";
 
 type StepState = "done" | "current" | "upcoming" | "cancelled";
 
