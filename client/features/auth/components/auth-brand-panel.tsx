@@ -28,15 +28,9 @@ const routes = [
     },
 ];
 
-const lines = [
-    { color: "#5B8DEF", label: "01", name: "Downtown Loop" },
-    { color: "#34D399", label: "02", name: "Harbor Express" },
-    { color: "#FBBF24", label: "03", name: "North Corridor" },
-];
-
 function AuthBrandPanel() {
     return (
-        <aside className="relative hidden overflow-hidden bg-[#0B1120] lg:flex lg:w-[46%] lg:max-w-[640px] lg:flex-col lg:justify-between">
+        <aside className="relative hidden overflow-hidden bg-[#0B1120] lg:flex lg:w-1/2 lg:flex-col lg:justify-between">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_15%,rgba(91,141,239,0.28),transparent_55%)]" />
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(11,17,32,0.65))]" />
 
@@ -95,35 +89,14 @@ function AuthBrandPanel() {
                 )}
             </svg>
 
-            <div className="relative flex items-center gap-3 p-12">
-                <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-white/10 ring-1 ring-white/15 backdrop-blur">
-                    <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        aria-hidden="true"
-                    >
-                        <path
-                            d="M4 18h16M6 6h12M8 6v12M16 6v12"
-                            stroke="white"
-                            strokeWidth="1.75"
-                            strokeLinecap="round"
-                        />
-                        <circle cx="8" cy="18" r="1.75" fill="white" />
-                        <circle cx="16" cy="18" r="1.75" fill="white" />
-                    </svg>
-                </div>
+            <div className="relative flex items-center p-12">
                 <span className="text-lg font-semibold tracking-tight text-white">
                     TransitOps
                 </span>
             </div>
 
             <div className="relative px-12 pb-14">
-                <p className="text-xs font-medium tracking-[0.2em] text-white/50 uppercase">
-                    Fleet control room
-                </p>
-                <h2 className="mt-4 max-w-[16ch] text-4xl leading-[1.1] font-semibold tracking-tight text-white">
+                <h2 className="max-w-[16ch] text-4xl leading-[1.1] font-semibold tracking-tight text-white">
                     Every route, vehicle and shift in one place.
                 </h2>
                 <p className="mt-5 max-w-[42ch] text-sm leading-relaxed text-white/60">
@@ -131,23 +104,6 @@ function AuthBrandPanel() {
                     single operations console built for the people who keep it
                     moving.
                 </p>
-
-                <div className="mt-10 flex flex-col gap-3">
-                    {lines.map((line) => (
-                        <div key={line.label} className="flex items-center gap-3">
-                            <span
-                                className="flex h-7 w-7 items-center justify-center rounded-[7px] text-[11px] font-semibold text-[#0B1120]"
-                                style={{ backgroundColor: line.color }}
-                            >
-                                {line.label}
-                            </span>
-                            <span className="h-px flex-1 max-w-[52px] bg-white/15" />
-                            <span className="text-sm font-medium text-white/70">
-                                {line.name}
-                            </span>
-                        </div>
-                    ))}
-                </div>
             </div>
         </aside>
     );

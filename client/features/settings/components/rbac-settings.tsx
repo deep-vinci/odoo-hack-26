@@ -26,7 +26,7 @@ function AccessCell({ level }: { level: AccessLevel }) {
     if (level === "view") {
         return <span className="text-xs font-medium">View</span>;
     }
-    return <span aria-hidden="true">—</span>;
+    return <span className="text-xs font-medium text-gray-400">None</span>;
 }
 
 export function RbacSettingsPanel() {
@@ -67,7 +67,7 @@ export function RbacSettingsPanel() {
                         Read-only
                     </span>
                     <span className="inline-flex items-center gap-1.5">
-                        <span className="text-gray-400">—</span>
+                        <span className="text-xs font-medium text-gray-400">None</span>
                         No access
                     </span>
                 </div>
@@ -99,7 +99,7 @@ export function RbacSettingsPanel() {
                                             <button
                                                 type="button"
                                                 onClick={() => cycleAccess(role.key, module.key)}
-                                                aria-label={`${role.label} — ${module.label}: ${accessLabel[level]}. Click to change.`}
+                                                aria-label={`${role.label}, ${module.label}: ${accessLabel[level]}. Click to change.`}
                                                 className={cn(
                                                     "inline-flex h-8 w-full min-w-14 cursor-pointer items-center justify-center rounded-[4px] transition",
                                                     cellClassByAccess[level],

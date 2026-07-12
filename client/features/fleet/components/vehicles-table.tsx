@@ -189,7 +189,7 @@ export function VehiclesTable() {
             {
                 key: "region",
                 header: "Region",
-                render: (row) => row.region ?? "—",
+                render: (row) => row.region ?? <span className="text-gray-400">None</span>,
             },
             {
                 key: "status",
@@ -332,7 +332,7 @@ export function VehiclesTable() {
                         title="Delete vehicle"
                         description={
                             deleteTarget
-                                ? `Delete ${deleteTarget.name} (${deleteTarget.registration_number})? This cannot be undone. Vehicles with trips or logs cannot be deleted — retire them instead.`
+                                ? `Delete ${deleteTarget.name} (${deleteTarget.registration_number})? This cannot be undone. Vehicles with trips or logs cannot be deleted. Retire them instead.`
                                 : ""
                         }
                         confirmLabel="Delete"

@@ -31,9 +31,20 @@ export function FuelLogTable({ logs, vehicles, onRecordCost }: FuelLogTableProps
             {
                 key: "vehicle",
                 header: "Vehicle",
-                render: (row) => <span className="font-medium">{vehicleNameById.get(row.vehicleId) ?? "—"}</span>,
+                render: (row) => {
+                    const name = vehicleNameById.get(row.vehicleId);
+                    return name ? (
+                        <span className="font-medium">{name}</span>
+                    ) : (
+                        <span className="text-gray-400">None</span>
+                    );
+                },
             },
-            { key: "trip", header: "Trip", render: (row) => row.tripId ?? "—" },
+            {
+                key: "trip",
+                header: "Trip",
+                render: (row) => row.tripId ?? <span className="text-gray-400">None</span>,
+            },
             { key: "date", header: "Date", render: (row) => formatDate(row.date) },
             { key: "liters", header: "Liters", render: (row) => `${row.liters.toLocaleString("en-IN")} L` },
             {

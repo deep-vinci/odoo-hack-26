@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { HorizontalScrollRow } from "@/components/ui/horizontal-scroll-row";
 import { KPICard } from "@/components/ui/kpi-card";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
@@ -64,23 +63,19 @@ export function FuelExpenseView() {
     return (
         <>
             <div className="px-8 pt-6">
-                <HorizontalScrollRow className="flex min-w-0 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                     {stats.map((stat) => (
-                        <div key={stat.label} className="w-56 shrink-0">
-                            <KPICard label={stat.label} value={stat.value} prefix="₹" />
-                        </div>
+                        <KPICard key={stat.label} label={stat.label} value={stat.value} prefix="₹" />
                     ))}
-                    <div className="w-64 shrink-0">
-                        <div className={cn(design.card, "flex flex-col p-5")}>
-                            <span className="flex-1 text-sm font-medium text-gray-500">
-                                Total Operational Cost (auto)
-                            </span>
-                            <p className="mt-5 text-[28px] leading-none font-semibold tabular-nums text-[#1f2430]">
-                                ₹{totalOperationalCost.toLocaleString("en-IN")}
-                            </p>
-                        </div>
+                    <div className={cn(design.card, "flex flex-col p-5")}>
+                        <span className="flex-1 text-sm font-medium text-gray-500">
+                            Total Operational Cost (auto)
+                        </span>
+                        <p className="mt-5 text-[28px] leading-none font-semibold tabular-nums text-[#1f2430]">
+                            ₹{totalOperationalCost.toLocaleString("en-IN")}
+                        </p>
                     </div>
-                </HorizontalScrollRow>
+                </div>
             </div>
 
             <FuelLogTable
