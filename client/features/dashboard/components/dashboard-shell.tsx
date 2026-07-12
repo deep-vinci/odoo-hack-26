@@ -33,10 +33,19 @@ const navItems: DashboardNavItem[] = [
 
 type DashboardShellProps = {
   headerTitle?: ReactNode;
+  headerRight?: ReactNode;
+  searchPlaceholder?: string;
+  onSearch?: (query: string) => void;
   children: ReactNode;
 };
 
-export function DashboardShell({ headerTitle, children }: DashboardShellProps) {
+export function DashboardShell({
+  headerTitle,
+  headerRight,
+  searchPlaceholder,
+  onSearch,
+  children,
+}: DashboardShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -56,6 +65,9 @@ export function DashboardShell({ headerTitle, children }: DashboardShellProps) {
         onNavigate={(href) => router.push(href)}
         onNavHover={handleNavHover}
         headerTitle={headerTitle}
+        headerRight={headerRight}
+        searchPlaceholder={searchPlaceholder}
+        onSearch={onSearch}
         footer={
           <button
             type="button"

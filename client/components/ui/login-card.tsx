@@ -19,7 +19,7 @@ type LoginCardProps = {
     onForgotPassword?: () => void;
 };
 
-const fieldClassName = "bg-indigo-50 border-indigo-100";
+const fieldClassName = "border-indigo-100";
 
 function LoginCard({
     title = "Get started with TransitOps",
