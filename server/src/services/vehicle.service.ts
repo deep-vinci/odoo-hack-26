@@ -298,6 +298,13 @@ export const updateVehicle = async (
   }
 };
 
+const ALLOWED_MANUAL_TRANSITIONS: Record<VehicleStatus, VehicleStatus[]> = {
+  available: ["available", "retired"],
+  retired: ["retired", "available"],
+  in_shop: ["retired"],
+  on_trip: [],
+};
+
 const assertManualTransition = (current: VehicleStatus, target: VehicleStatus): void => {
   if (!MANUAL_VEHICLE_STATUSES.includes(target)) {
     throw new ApiError(
@@ -307,7 +314,7 @@ const assertManualTransition = (current: VehicleStatus, target: VehicleStatus): 
     );
   }
 
-  if (!MANUAL_VEHICLE_STATUSES.includes(current)) {
+  if (!ALLOWED_MANUAL_TRANSITIONS[current].includes(target)) {
     const action = target === "retired" ? "retire" : "reactivate";
     const remedy =
       current === "on_trip"
