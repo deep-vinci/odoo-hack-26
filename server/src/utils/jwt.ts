@@ -15,15 +15,15 @@ const getSecret = (): string => {
   return secret;
 };
 
-export const getTokenExpiresInSeconds = (): number => {
-  const value = Number(process.env.JWT_EXPIRES_IN);
-  return Number.isFinite(value) && value > 0 ? value : 43200;
+export const getAccessTokenExpiresInSeconds = (): number => {
+  const value = Number(process.env.ACCESS_TOKEN_EXPIRES_IN);
+  return Number.isFinite(value) && value > 0 ? value : 900;
 };
 
-export const signToken = (payload: JwtPayload): string => {
-  const options: SignOptions = { expiresIn: getTokenExpiresInSeconds() };
+export const signAccessToken = (payload: JwtPayload): string => {
+  const options: SignOptions = { expiresIn: getAccessTokenExpiresInSeconds() };
   return jwt.sign(payload, getSecret(), options);
 };
 
-export const verifyToken = (token: string): JwtPayload =>
+export const verifyAccessToken = (token: string): JwtPayload =>
   jwt.verify(token, getSecret()) as JwtPayload;

@@ -7,6 +7,7 @@ import {
   getMe,
   login,
   logout,
+  refresh,
   register,
   resetPassword,
 } from "../controllers/auth.controller";
@@ -29,6 +30,7 @@ const forgotPasswordLimiter = createRateLimiter({
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/refresh", refresh);
 router.get("/me", authenticate, getMe);
 router.post("/logout", logout);
 router.post("/forgot-password", forgotPasswordLimiter, forgotPassword);

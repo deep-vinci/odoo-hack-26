@@ -1,8 +1,14 @@
+import type { Pool, PoolClient } from "pg";
 import bcrypt from "bcrypt";
 
 import pool from "../config/db";
 import { ApiError } from "../utils/ApiError";
-import { signToken, getTokenExpiresInSeconds } from "../utils/jwt";
+import { signAccessToken, getAccessTokenExpiresInSeconds } from "../utils/jwt";
+import {
+  generateRefreshToken,
+  hashRefreshToken,
+  getRefreshTokenTtlDays,
+} from "../utils/refreshToken";
 import {
   generateRawToken,
   hashToken,
@@ -37,13 +43,41 @@ export interface AuthUser {
   role: UserRole;
 }
 
-export interface LoginResult {
-  token: string;
+export interface AuthTokens {
+  access_token: string;
+  refresh_token: string;
+  token_type: "Bearer";
   expires_in: number;
   user: AuthUser;
 }
 
-export const registerUser = async (input: RegisterInput): Promise<UserRecord> => {
+const issueTokens = async (
+  user: AuthUser,
+  db: Pool | PoolClient = pool,
+): Promise<AuthTokens> => {
+  const accessToken = signAccessToken({ user_id: user.id, role: user.role });
+  const rawRefreshToken = generateRefreshToken();
+  const tokenHash = hashRefreshToken(rawRefreshToken);
+  const ttlDays = getRefreshTokenTtlDays();
+
+  await db.query(
+    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+     VALUES ($1, $2, now() + ($3 || ' days')::interval)`,
+    [user.id, tokenHash, String(ttlDays)],
+  );
+
+  return {
+    access_token: accessToken,
+    refresh_token: rawRefreshToken,
+    token_type: "Bearer",
+    expires_in: getAccessTokenExpiresInSeconds(),
+    user,
+  };
+};
+
+export const registerUser = async (
+  input: RegisterInput,
+): Promise<UserRecord> => {
   const existing = await pool.query("SELECT id FROM users WHERE email = $1", [
     input.email,
   ]);
@@ -100,7 +134,7 @@ interface UserAuthRow {
   password_hash: string;
 }
 
-export const loginUser = async (input: LoginInput): Promise<LoginResult> => {
+export const loginUser = async (input: LoginInput): Promise<AuthTokens> => {
   const result = await pool.query<UserAuthRow>(
     `SELECT id, name, email, role, is_active, password_hash
      FROM users
@@ -119,21 +153,98 @@ export const loginUser = async (input: LoginInput): Promise<LoginResult> => {
   }
 
   if (!user.is_active) {
-    throw new ApiError(403, "ACCOUNT_DISABLED", "This account has been deactivated");
+    throw new ApiError(
+      403,
+      "ACCOUNT_DISABLED",
+      "This account has been deactivated",
+    );
   }
 
-  const token = signToken({ user_id: user.id, role: user.role });
+  return issueTokens({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  });
+};
 
-  return {
-    token,
-    expires_in: getTokenExpiresInSeconds(),
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-  };
+export const refreshSession = async (
+  rawRefreshToken: string,
+): Promise<AuthTokens> => {
+  const tokenHash = hashRefreshToken(rawRefreshToken);
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const tokenResult = await client.query<{
+      id: string;
+      user_id: string;
+      revoked_at: string | null;
+      expired: boolean;
+    }>(
+      `SELECT id, user_id, revoked_at, (expires_at <= now()) AS expired
+       FROM refresh_tokens
+       WHERE token_hash = $1
+       FOR UPDATE`,
+      [tokenHash],
+    );
+
+    const tokenRow = tokenResult.rows[0];
+    if (!tokenRow || tokenRow.revoked_at !== null || tokenRow.expired) {
+      throw new ApiError(
+        401,
+        "INVALID_REFRESH_TOKEN",
+        "Refresh token is invalid or has expired",
+      );
+    }
+
+    const userResult = await client.query<UserAuthRow>(
+      `SELECT id, name, email, role, is_active, password_hash
+       FROM users
+       WHERE id = $1`,
+      [tokenRow.user_id],
+    );
+    const user = userResult.rows[0];
+    if (!user || !user.is_active) {
+      throw new ApiError(
+        401,
+        "INVALID_REFRESH_TOKEN",
+        "Refresh token is invalid or has expired",
+      );
+    }
+
+    await client.query(
+      "UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1",
+      [tokenRow.id],
+    );
+
+    const tokens = await issueTokens(
+      {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+      client,
+    );
+
+    await client.query("COMMIT");
+    return tokens;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
+export const logoutUser = async (rawRefreshToken: string): Promise<void> => {
+  const tokenHash = hashRefreshToken(rawRefreshToken);
+  await pool.query(
+    "UPDATE refresh_tokens SET revoked_at = now() WHERE token_hash = $1 AND revoked_at IS NULL",
+    [tokenHash],
+  );
 };
 
 export interface ForgotPasswordResult {
@@ -185,7 +296,9 @@ export const requestPasswordReset = async (
   return { devResetUrl: resetUrl };
 };
 
-export const resetPassword = async (input: ResetPasswordInput): Promise<void> => {
+export const resetPassword = async (
+  input: ResetPasswordInput,
+): Promise<void> => {
   const tokenHash = hashToken(input.token);
 
   const client = await pool.connect();
