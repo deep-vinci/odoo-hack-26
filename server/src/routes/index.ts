@@ -7,6 +7,8 @@ import tripRoutes from "./trip.routes";
 import maintenanceRoutes from "./maintenance.routes";
 import fuelRoutes from "./fuel.routes";
 import expenseRoutes from "./expense.routes";
+import dashboardRoutes from "./dashboard.routes";
+import reportRoutes from "./report.routes";
 
 const router = Router();
 
@@ -17,5 +19,7 @@ router.use("/trips", tripRoutes);
 router.use("/maintenance", maintenanceRoutes);
 router.use("/fuel-logs", fuelRoutes);
 router.use("/expenses", expenseRoutes);
+router.use("/dashboard", dashboardRoutes);
+router.use("/reports", reportRoutes);
 
 export default router;
