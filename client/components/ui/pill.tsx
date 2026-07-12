@@ -1,17 +1,11 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-// ── Pill ─────────────────────────────────────────────────────────────────────
-// Rectangular badge (rounded-[4px]) — the standard shape across all apps.
-// All variants share the same base: inline-flex, px-2 py-0.5, text-xs font-medium.
-// The `live` variant overrides to a compact uppercase label used on running sessions.
-
 const pillVariants = cva(
   "inline-flex items-center rounded-[4px] px-2 py-0.5 text-xs font-medium",
   {
     variants: {
       variant: {
-        // ── Status ────────────────────────────────────────────────────────────
         active:      "bg-emerald-600 text-white",
         pending:     "bg-amber-500 text-white",
         error:       "bg-red-600 text-white",
@@ -19,10 +13,8 @@ const pillVariants = cva(
         "error-alt": "bg-red-700 text-white",
         inactive:    "bg-gray-400 text-white",
         draft:       "border border-gray-200 bg-gray-700 text-gray-50",
-        // compact uppercase badge for live/running states
         live:        "bg-emerald-600 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-white",
 
-        // ── Info / Brand ──────────────────────────────────────────────────────
         info:           "bg-blue-600 text-white",
         brand:          "bg-[#2C5EAD] text-white",
         "brand-accent": "bg-[#2b7fd3] text-white",
@@ -30,16 +22,13 @@ const pillVariants = cva(
         valid:          "bg-emerald-600 text-white",
         invalid:        "bg-red-500 text-white",
 
-        // ── Roles ─────────────────────────────────────────────────────────────
         "super-admin": "bg-violet-600 text-white",
 
-        // ── Category / Label ──────────────────────────────────────────────────
         generic:   "bg-gray-200 text-gray-700",
         canteen:   "bg-teal-600 text-white",
         plan:      "bg-orange-500 text-white",
         available: "bg-[#009966] text-white",
 
-        // ── WhatsApp delivery ─────────────────────────────────────────────────
         "whatsapp-sent":     "bg-emerald-600 text-white",
         "whatsapp-failed":   "bg-red-600 text-white",
         "whatsapp-skipped":  "bg-sky-500 text-white",
@@ -61,9 +50,6 @@ export interface PillProps
 export function Pill({ variant, className, ...props }: PillProps) {
   return <span className={cn(pillVariants({ variant }), className)} {...props} />;
 }
-
-// ── StatusDot ─────────────────────────────────────────────────────────────────
-// Small circular dot — used for floor-plan indicators, row status signals, etc.
 
 const statusDotVariants = cva("shrink-0 rounded-full", {
   variants: {
