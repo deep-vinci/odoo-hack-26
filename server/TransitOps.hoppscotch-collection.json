@@ -1,0 +1,202 @@
+[
+  {
+    "v": 6,
+    "name": "TransitOps API - Vehicles",
+    "folders": [
+      {
+        "v": 6,
+        "name": "Vehicles",
+        "folders": [],
+        "requests": [
+          {
+            "v": "11",
+            "name": "2.1 Create Vehicle",
+            "method": "POST",
+            "endpoint": "<<baseUrl>>/vehicles",
+            "params": [],
+            "headers": [],
+            "preRequestScript": "",
+            "testScript": "// Auto-store the created vehicle id into the environment\ntry {\n  const b = typeof pw.response.body === \"string\" ? JSON.parse(pw.response.body) : pw.response.body;\n  if (b && b.data && b.data.vehicle && b.data.vehicle.id) pw.env.set(\"vehicleId\", b.data.vehicle.id);\n} catch (e) {}",
+            "auth": {
+              "authType": "inherit",
+              "authActive": true
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"registration_number\": \"GJ-06-AB-1234\",\n  \"name\": \"Tata Ace Gold\",\n  \"type\": \"mini_truck\",\n  \"max_load_capacity_kg\": 750,\n  \"odometer_km\": 12500,\n  \"acquisition_cost\": 650000,\n  \"region\": \"Vadodara\"\n}"
+            },
+            "requestVariables": [],
+            "responses": {}
+          },
+          {
+            "v": "11",
+            "name": "2.2 List Vehicles",
+            "method": "GET",
+            "endpoint": "<<baseUrl>>/vehicles",
+            "params": [
+              {
+                "key": "status",
+                "value": "available",
+                "active": false,
+                "description": ""
+              },
+              {
+                "key": "type",
+                "value": "mini_truck",
+                "active": false,
+                "description": ""
+              },
+              {
+                "key": "region",
+                "value": "Vadodara",
+                "active": false,
+                "description": ""
+              },
+              {
+                "key": "search",
+                "value": "GJ-06",
+                "active": false,
+                "description": ""
+              },
+              {
+                "key": "available_for_dispatch",
+                "value": "true",
+                "active": false,
+                "description": ""
+              },
+              {
+                "key": "page",
+                "value": "1",
+                "active": false,
+                "description": ""
+              },
+              {
+                "key": "limit",
+                "value": "20",
+                "active": false,
+                "description": ""
+              },
+              {
+                "key": "sort_by",
+                "value": "created_at",
+                "active": false,
+                "description": ""
+              },
+              {
+                "key": "sort_order",
+                "value": "desc",
+                "active": false,
+                "description": ""
+              }
+            ],
+            "headers": [],
+            "preRequestScript": "",
+            "testScript": "",
+            "auth": {
+              "authType": "inherit",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "requestVariables": [],
+            "responses": {}
+          },
+          {
+            "v": "11",
+            "name": "2.3 Get Vehicle by ID",
+            "method": "GET",
+            "endpoint": "<<baseUrl>>/vehicles/<<vehicleId>>",
+            "params": [],
+            "headers": [],
+            "preRequestScript": "",
+            "testScript": "",
+            "auth": {
+              "authType": "inherit",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "requestVariables": [],
+            "responses": {}
+          },
+          {
+            "v": "11",
+            "name": "2.4 Update Vehicle",
+            "method": "PATCH",
+            "endpoint": "<<baseUrl>>/vehicles/<<vehicleId>>",
+            "params": [],
+            "headers": [],
+            "preRequestScript": "",
+            "testScript": "",
+            "auth": {
+              "authType": "inherit",
+              "authActive": true
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"name\": \"Tata Ace Gold XL\",\n  \"max_load_capacity_kg\": 800,\n  \"region\": \"Ahmedabad\"\n}"
+            },
+            "requestVariables": [],
+            "responses": {}
+          },
+          {
+            "v": "11",
+            "name": "2.5 Change Vehicle Status",
+            "method": "PATCH",
+            "endpoint": "<<baseUrl>>/vehicles/<<vehicleId>>/status",
+            "params": [],
+            "headers": [],
+            "preRequestScript": "",
+            "testScript": "",
+            "auth": {
+              "authType": "inherit",
+              "authActive": true
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"status\": \"retired\"\n}"
+            },
+            "requestVariables": [],
+            "responses": {}
+          },
+          {
+            "v": "11",
+            "name": "2.6 Delete Vehicle",
+            "method": "DELETE",
+            "endpoint": "<<baseUrl>>/vehicles/<<vehicleId>>",
+            "params": [],
+            "headers": [],
+            "preRequestScript": "",
+            "testScript": "",
+            "auth": {
+              "authType": "inherit",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "requestVariables": [],
+            "responses": {}
+          }
+        ],
+        "auth": {
+          "authType": "inherit",
+          "authActive": true
+        },
+        "headers": []
+      }
+    ],
+    "requests": [],
+    "auth": {
+      "authType": "bearer",
+      "authActive": true,
+      "token": "<<accessToken>>"
+    },
+    "headers": []
+  }
+]
