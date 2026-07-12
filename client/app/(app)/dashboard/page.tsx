@@ -35,17 +35,12 @@ export default function DashboardPage() {
             // }
         >
             <div className="flex min-w-0 flex-col gap-6 py-6">
-                <div
-                    className={
-                        design.pageContainer +
-                        " flex min-w-0 flex-col gap-6 px-4 sm:px-6"
-                    }
-                >
+                <div className="flex min-w-0 flex-col gap-6 px-4 sm:px-6">
                     <DashboardFilters />
 
                     <HorizontalScrollRow className="flex min-w-0 gap-4">
                         {stats.map((stat) => (
-                            <div key={stat.label} className="w-56 shrink-0">
+                            <div key={stat.label} className="min-w-50 flex-1">
                                 <KPICard
                                     label={stat.label}
                                     value={stat.value}
