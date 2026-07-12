@@ -174,7 +174,7 @@ export function TickerNumber({
   if (isLoading) {
     return (
       <span className={cn("inline-block text-gray-300", className)} aria-hidden>
-        —
+        -
       </span>
     );
   }

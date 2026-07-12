@@ -18,6 +18,7 @@ import {
   DashboardLayout,
   type DashboardNavItem,
 } from "@/components/ui/dashboard-layout";
+import { useLogout } from "@/features/auth/use-auth";
 import { prefetchRouteQueries } from "@/features/dashboard/route-prefetch";
 
 const navItems: DashboardNavItem[] = [
@@ -49,10 +50,17 @@ export function DashboardShell({
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
+  const { mutateAsync: logout } = useLogout();
 
   const handleNavHover = (href: string) => {
     router.prefetch(href);
     prefetchRouteQueries(queryClient, href);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    queryClient.clear();
+    router.replace("/login");
   };
 
   return (
@@ -71,7 +79,7 @@ export function DashboardShell({
         footer={
           <button
             type="button"
-            onClick={() => router.push("/login")}
+            onClick={handleLogout}
             className="group mx-2 my-0.5 flex h-9 w-[calc(100%-16px)] cursor-pointer items-center gap-3 rounded-[4px] px-3 text-sm font-medium text-[#cccccc] transition-all duration-200 hover:bg-[#ffffff1a]"
           >
             <SignOut size={18} />

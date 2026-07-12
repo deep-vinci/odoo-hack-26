@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { design } from "@/lib/design";
 import { cn } from "@/lib/utils";
 
 type LoginCardProps = {
@@ -42,8 +41,7 @@ function LoginCard({
     return (
         <div
             className={cn(
-                design.card,
-                "w-full max-w-100 animate-fade-in p-8",
+                "w-full max-w-90 animate-fade-in",
                 className,
             )}
         >

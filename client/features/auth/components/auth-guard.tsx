@@ -5,21 +5,39 @@ import { useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui/spinner";
 import { getStoredToken } from "@/lib/auth-storage";
 
+type TokenState = string | null | undefined;
+
 function subscribe(callback: () => void) {
     window.addEventListener("storage", callback);
-    return () => window.removeEventListener("storage", callback);
+    window.addEventListener("pageshow", callback);
+    window.addEventListener("popstate", callback);
+    window.addEventListener("visibilitychange", callback);
+    return () => {
+        window.removeEventListener("storage", callback);
+        window.removeEventListener("pageshow", callback);
+        window.removeEventListener("popstate", callback);
+        window.removeEventListener("visibilitychange", callback);
+    };
+}
+
+function getClientSnapshot(): TokenState {
+    return getStoredToken();
+}
+
+function getServerSnapshot(): TokenState {
+    return undefined;
 }
 
 export function AuthGuard({ children }: { children: ReactNode }) {
     const router = useRouter();
     const token = useSyncExternalStore(
         subscribe,
-        getStoredToken,
-        () => null,
+        getClientSnapshot,
+        getServerSnapshot,
     );
 
     useEffect(() => {
-        if (!token) {
+        if (token === null) {
             router.replace("/login");
         }
     }, [token, router]);

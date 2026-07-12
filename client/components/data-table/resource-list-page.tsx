@@ -30,19 +30,12 @@ type ResourceListPageProps<T> = {
         onClick: () => void;
     };
     toolbar?: ReactNode;
-    /** Omit outer page chrome when nested inside another layout (e.g. Settings tabs). */
     embedded?: boolean;
-    /** Hide title and description when the parent section already shows them. */
     hideHeader?: boolean;
-    /** Stretch page content to full available width instead of the shared max-width container. */
     fullWidth?: boolean;
-    /** Force equal-width columns via table-fixed layout. */
     tableFixed?: boolean;
-    /** Key of the currently expanded row — forwarded to DataTable. */
     expandedKey?: string | null;
-    /** Toggle callback for expandable rows — forwarded to DataTable. */
     onToggleExpand?: (key: string) => void;
-    /** Expanded row content renderer — forwarded to DataTable. */
     expandContent?: (row: T) => ReactNode;
 };
 

@@ -31,15 +31,23 @@ const statusVariant: Record<TripStatus, PillVariant> = {
 
 const trips: Trip[] = [
     { id: "TR001", vehicle: "VAN-05", driver: "Alex", status: "on-trip", eta: "45 min" },
-    { id: "TR002", vehicle: "TRK-12", driver: "John", status: "completed", eta: "—" },
+    { id: "TR002", vehicle: "TRK-12", driver: "John", status: "completed", eta: "" },
     { id: "TR003", vehicle: "MINI-08", driver: "Priya", status: "dispatched", eta: "1h 10m" },
-    { id: "TR006", vehicle: "—", driver: "—", status: "draft", eta: "Awaiting vehicle" },
+    { id: "TR006", vehicle: "", driver: "", status: "draft", eta: "Awaiting vehicle" },
 ];
 
 const columns: DataTableColumn<Trip>[] = [
     { key: "id", header: "Trip", render: (row) => <span className="font-medium">{row.id}</span> },
-    { key: "vehicle", header: "Vehicle", render: (row) => row.vehicle },
-    { key: "driver", header: "Driver", render: (row) => row.driver },
+    {
+        key: "vehicle",
+        header: "Vehicle",
+        render: (row) => row.vehicle || <span className="text-gray-400">None</span>,
+    },
+    {
+        key: "driver",
+        header: "Driver",
+        render: (row) => row.driver || <span className="text-gray-400">None</span>,
+    },
     {
         key: "status",
         header: "Status",
@@ -47,7 +55,11 @@ const columns: DataTableColumn<Trip>[] = [
             <Pill variant={statusVariant[row.status]}>{statusLabel[row.status]}</Pill>
         ),
     },
-    { key: "eta", header: "ETA", render: (row) => row.eta },
+    {
+        key: "eta",
+        header: "ETA",
+        render: (row) => row.eta || <span className="text-gray-400">None</span>,
+    },
 ];
 
 export function RecentTripsTable() {
